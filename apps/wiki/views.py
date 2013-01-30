@@ -90,16 +90,19 @@ def document(request, document_slug, template=None):
             # and OK to fall back to parent (parent is approved).
             fallback_reason = 'no_translation'
 
+    hide_voting = False
     # Obey explicit redirect pages:
     # Don't redirect on redirect=no (like Wikipedia), so we can link from a
     # redirected-to-page back to a "Redirected from..." link, so you can edit
     # the redirect.
-    redirect_url = (None if request.GET.get('redirect') == 'no'
-                    else doc.redirect_url(request.locale))
+    redirect_url = doc.redirect_url(request.locale)
     if redirect_url:
-        url = urlparams(redirect_url, query_dict=request.GET,
-                        redirectslug=doc.slug, redirectlocale=doc.locale)
-        return HttpResponseRedirect(url)
+        if request.GET.get('redirect') == 'no':
+            hide_voting = True
+        else:
+            url = urlparams(redirect_url, query_dict=request.GET,
+                            redirectslug=doc.slug, redirectlocale=doc.locale)
+            return HttpResponseRedirect(url)
 
     # Get "redirected from" doc if we were redirected:
     redirect_slug = request.GET.get('redirectslug')
@@ -124,7 +127,6 @@ def document(request, document_slug, template=None):
 
     topics = Topic.objects.filter(visible=True)
 
-    hide_voting = False
     if (doc.category == TEMPLATES_CATEGORY or
         waffle.switch_is_active('hide-voting')):
         hide_voting = True
